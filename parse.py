@@ -4,11 +4,28 @@ import argparse
 
 class Time:
 
-   def __init__(self, weeks, days, start, length):
-      self.weeks = weeks
-      self.days = days
+   def __init__(self, weeks_str, days_str, start, length):
+      self.weeks = set()
+      for i, c in enumerate(weeks_str):
+         if c == '1':
+            self.weeks.add(i)
+      self.days = set()
+      for i, c in enumerate(days_str):
+         if c == '1':
+            self.days.add(i)
       self.start = start
       self.length = length
+
+   def intersects(self, other):
+      if self.weeks.isdisjoint(other.weeks):
+         return False
+      if self.days.isdisjoint(other.days):
+         return False
+      if self.start + self.length <= other.start:
+         return False
+      if other.start + other.length <= self.start:
+         return False
+      return True
 
    def __str__(self):
       return f'In the weeks {self.weeks}, the days {self.days}, in the time slots {self.start}-{self.start+self.length-1}.'
