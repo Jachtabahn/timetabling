@@ -1,4 +1,6 @@
 from xml import sax
+import logging
+import argparse
 
 class Time:
 
@@ -170,6 +172,15 @@ class TimetablingHandler(sax.ContentHandler):
          self.distribution_uclasses = None
 
 if __name__ == '__main__':
+   parser = argparse.ArgumentParser()
+   parser.add_argument('--verbose', '-v', action='count')
+   args = parser.parse_args()
+   log_levels = {
+       None: logging.WARNING,
+       1: logging.INFO,
+       2: logging.DEBUG
+   }
+   logging.basicConfig(format='%(message)s', level=log_levels[args.verbose])
 
    parser = sax.make_parser()
    parser.setContentHandler(TimetablingHandler())
