@@ -60,8 +60,12 @@ class Uclass:
 
    def __init__(self, uclass_id):
       self.id = uclass_id
+
       self.times = dict()
+      self.chosen_time = None
+
       self.rooms = dict()
+      self.chosen_room = None
 
       '''
          The following dictionary maps a string like 'NotOverlap' or 'SameAttendees' to a dictionary.
@@ -188,6 +192,15 @@ class TimetablingHandler(sax.ContentHandler):
          self.distribution_penalty = None
          self.distribution_uclasses = None
 
+def check_constraints(assigned_ids, uclass, time_location):
+   for uclass_id in assigned_ids:
+      other_uclass = uclass_by_id[uclass_id]
+      same_rooms = other_uclass.chosen_room is not None and uclass.chosen_room is not None and other_uclass.chosen_room == uclass.chosen_room
+      times_intersect = other_uclass.chosen_time.intersects(time_location)
+      if same_rooms and times_intersect:
+         return False
+   return True
+
 if __name__ == '__main__':
    parser = argparse.ArgumentParser()
    parser.add_argument('--verbose', '-v', action='count')
@@ -201,16 +214,50 @@ if __name__ == '__main__':
 
    parser = sax.make_parser()
    parser.setContentHandler(TimetablingHandler())
-   parser.parse('instances/agh-fis-spr17.xml')
+   parser.parse('instances/bet-sum18.xml')
 
-   print(f'I found the rooms:\n')
+   logging.debug(f'I found the rooms:\n')
    for room_id, room in room_by_id.items():
-      print(f'{room}')
+      logging.debug(f'{room}')
 
-   print(f'The room distances are:\n')
+   logging.debug(f'The room distances are:\n')
    for two_rooms, distance in room_distances.items():
-      print(f'Rooms {two_rooms} have distance {distance}\n')
+      logging.debug(f'Rooms {two_rooms} have distance {distance}\n')
 
-   print('The classes are:')
+   logging.debug('The classes are:')
    for uclass_id, uclass in uclass_by_id.items():
-      print(uclass)
+      logging.debug(uclass)
+
+   assigned_ids = []
+   for uclass_id, uclass in uclass_by_id.items():
+
+      possible_rooms = uclass.rooms if uclass.rooms else [None]
+      for room in possible_rooms:
+         is_consistent = False
+         uclass.chosen_room = room
+         for time_location in uclass.times:
+            is_consistent = check_constraints(assigned_ids, uclass, time_location)
+            if is_consistent:
+               uclass.chosen_time = time_location
+               break
+         if is_consistent:
+            break
+
+      if not is_consistent:
+         logging.debug(f'Given prior allocations, class {uclass_id} cannot be allocated.')
+         logging.debug(f'Prior allocations are:')
+         for uclass_id in assigned_ids:
+            uclass = uclass_by_id[uclass_id]
+            if uclass.chosen_room is not None:
+               logging.debug(f'Class {uclass_id} is assigned room {uclass.chosen_room.id}')
+            if uclass.chosen_time is not None:
+               logging.debug(f'Class {uclass_id} is assigned time: {uclass.chosen_time}')
+         exit(1)
+      assigned_ids.append(uclass_id)
+
+   logging.debug('The assignments are:')
+   for uclass_id, uclass in uclass_by_id.items():
+      if uclass.chosen_room is not None:
+         logging.debug(f'Class {uclass_id} is assigned room {uclass.chosen_room.id}')
+      if uclass.chosen_time is not None:
+         logging.debug(f'Class {uclass_id} is assigned time: {uclass.chosen_time}')
