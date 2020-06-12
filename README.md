@@ -5,7 +5,7 @@
 
 On Linux, do
 ```bash
-git clone
+git clone git@github.com:Jachtabahn/timetabling.git
 cd timetabling
 python parse.py -vv
 ```
